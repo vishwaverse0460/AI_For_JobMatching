@@ -38,23 +38,23 @@ project-root/
 ---
 
 ## 📱 Screenshots
-![img]()
-![img](<img width="1919" height="1127" alt="Screenshot 2025-10-18 014027" src="https://github.com/user-attachments/assets/d70b1c95-a5bb-41f7-b855-bed65591f1b4" />
-)
-![img](<img width="1919" height="1120" alt="Screenshot 2025-10-18 014234" src="https://github.com/user-attachments/assets/f3b2f8eb-dd0d-4c6f-8424-255248c30607" />
-)
-![img](<img width="1919" height="1104" alt="Screenshot 2025-10-18 014441" src="https://github.com/user-attachments/assets/03c0a06e-8412-4743-bbb8-e8a5563b254e" />
-)
-![img](<img width="953" height="518" alt="Screenshot 2025-10-18 014500" src="https://github.com/user-attachments/assets/eefaf40b-019e-4282-ae83-a44544d39986" />
-)
-![img](<img width="1918" height="1121" alt="Screenshot 2025-10-18 014539" src="https://github.com/user-attachments/assets/4a4da646-da1c-4576-966e-d7eafa9f2235" />
-)
-![img](<img width="1913" height="1126" alt="Screenshot 2025-10-18 014621" src="https://github.com/user-attachments/assets/b5a1e353-4025-497c-9ded-3c01fa4d61b0" />
-)
-![img](<img width="1919" height="1131" alt="Screenshot 2025-10-18 014645" src="https://github.com/user-attachments/assets/1db635e7-5c16-4318-bb8e-85f4aac07234" />
-)
-![img](<img width="1919" height="1073" alt="Screenshot 2025-10-18 015503" src="https://github.com/user-attachments/assets/f33cd51a-ccfe-42d0-9e94-e64720382800" />
-)
+![img](https://github.com/user-attachments/assets/da9a573e-2427-4a8d-980d-21c0a0c78e1f)
+
+![img](https://github.com/user-attachments/assets/d70b1c95-a5bb-41f7-b855-bed65591f1b4)
+
+![img](https://github.com/user-attachments/assets/f3b2f8eb-dd0d-4c6f-8424-255248c30607)
+
+![img](https://github.com/user-attachments/assets/03c0a06e-8412-4743-bbb8-e8a5563b254e)
+
+![img](https://github.com/user-attachments/assets/eefaf40b-019e-4282-ae83-a44544d39986)
+
+![img](https://github.com/user-attachments/assets/4a4da646-da1c-4576-966e-d7eafa9f2235)
+
+![img](https://github.com/user-attachments/assets/b5a1e353-4025-497c-9ded-3c01fa4d61b0)
+
+![img](https://github.com/user-attachments/assets/1db635e7-5c16-4318-bb8e-85f4aac07234)
+
+![img](https://github.com/user-attachments/assets/f33cd51a-ccfe-42d0-9e94-e64720382800)
 
 ---
 
