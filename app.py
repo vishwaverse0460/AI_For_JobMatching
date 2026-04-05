@@ -1,12 +1,12 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-from flask_mysqldb import MySQL
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
-import re
-from spellchecker import SpellChecker
-import random
-import string
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify 
+from flask_mysqldb import MySQL 
+from sentence_transformers import SentenceTransformer 
+from sklearn.metrics.pairwise import cosine_similarity 
+import numpy as np 
+import re 
+from spellchecker import SpellChecker 
+import random 
+import string 
 from flask.json.provider import DefaultJSONProvider
 
 # ========================================================
@@ -397,18 +397,27 @@ def home():
 # REST APIs with improved error handling
 
 
-
 @app.route('/add_job', methods=['POST'])
 def add_job():
     if 'user_email' not in session:
         return jsonify({'status': 'fail', 'message': 'Unauthorized'}), 401
     try:
+        user_email = session['user_email']  # ✅ NEW
+
         data = request.json
         jobid = data.get('jobid', '').strip()
+
         if not validate_job_id_format(jobid):
             return jsonify({'status': 'fail', 'message': 'Invalid Job ID format.'}), 400
+
         cur = mysql.connection.cursor()
-        cur.execute("SELECT jobid FROM jobs WHERE jobid = %s", (jobid,))
+
+        # check duplicate job id for THIS USER ONLY
+        cur.execute("""
+            SELECT jobid FROM jobs 
+            WHERE jobid = %s AND user_email = %s
+        """, (jobid, user_email))
+        
         if cur.fetchone():
             cur.close()
             return jsonify({'status': 'fail', 'message': 'Job ID already exists.'}), 400
@@ -419,10 +428,19 @@ def add_job():
         skills_normalized = normalize_text_list(original_skills)
         roles_normalized = normalize_text_list(original_roles)
 
-        cur.execute("INSERT INTO jobs (jobid, roles, skills, experience) VALUES (%s, %s, %s, %s)",
-                    (jobid, ','.join(roles_normalized), ','.join(skills_normalized), data.get('experience', 0)))
+        # ✅ UPDATED INSERT (added user_email)
+        cur.execute("""
+            INSERT INTO jobs (jobid, roles, skills, experience, user_email)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (
+            jobid,
+            ','.join(roles_normalized),
+            ','.join(skills_normalized),
+            data.get('experience', 0),
+            user_email
+        ))
 
-        # Normalize qualifications before inserting
+        # Normalize qualifications before inserting (UNCHANGED)
         qualifications = data.get('qualifications', [])
         for deg, maj in qualifications:
             deg_corrected = correct_spelling(deg)
@@ -430,12 +448,16 @@ def add_job():
             deg_norm = normalize_degree(deg_corrected)
             maj_norm = normalize_major(maj_corrected)
             if deg_norm or maj_norm:
-                cur.execute("INSERT INTO job_qualifications (jobid, degree, major) VALUES (%s, %s, %s)",
-                            (jobid, deg_norm, maj_norm))
+                cur.execute("""
+                    INSERT INTO job_qualifications (jobid, degree, major)
+                    VALUES (%s, %s, %s)
+                """, (jobid, deg_norm, maj_norm))
 
         mysql.connection.commit()
         cur.close()
+
         return jsonify({'status': 'success', 'message': 'Job added successfully.'})
+
     except Exception as e:
         print("Error in add_job:", e)
         return jsonify({'status': 'fail', 'message': str(e)}), 500
@@ -446,18 +468,28 @@ def add_candidate():
     if 'user_email' not in session:
         return jsonify({'status': 'fail', 'message': 'Unauthorized'}), 401
     try:
+        user_email = session['user_email']  # ✅ NEW
+
         data = request.json
         candidateid = generate_candidate_id()
         cur = mysql.connection.cursor()
 
-        # Normalize skills list
+        # Normalize skills list (UNCHANGED)
         original_skills = data.get('skills', [])
         skills_normalized = normalize_text_list(original_skills)
 
-        cur.execute("INSERT INTO candidates (candidateid, skills, experience) VALUES (%s, %s, %s)",
-                    (candidateid, ','.join(skills_normalized), data.get('experience', 0)))
+        # ✅ UPDATED INSERT (added user_email)
+        cur.execute("""
+            INSERT INTO candidates (candidateid, skills, experience, user_email)
+            VALUES (%s, %s, %s, %s)
+        """, (
+            candidateid,
+            ','.join(skills_normalized),
+            data.get('experience', 0),
+            user_email
+        ))
 
-        # Normalize qualifications before inserting
+        # Normalize qualifications before inserting (UNCHANGED)
         qualifications = data.get('qualifications', [])
         normalized_qualifications = []
         for deg, maj in qualifications:
@@ -467,12 +499,16 @@ def add_candidate():
             maj_norm = normalize_major(maj_corrected)
             normalized_qualifications.append((deg_norm, maj_norm))
             if deg_norm or maj_norm:
-                cur.execute("INSERT INTO candidate_qualifications (candidateid, degree, major) VALUES (%s, %s, %s)",
-                            (candidateid, deg_norm, maj_norm))
+                cur.execute("""
+                    INSERT INTO candidate_qualifications (candidateid, degree, major)
+                    VALUES (%s, %s, %s)
+                """, (candidateid, deg_norm, maj_norm))
 
         mysql.connection.commit()
         cur.close()
+
         return jsonify({'status': 'success', 'candidateid': candidateid})
+
     except Exception as e:
         print("Error in add_candidate:", e)
         return jsonify({'status': 'fail', 'message': str(e)}), 500
@@ -484,17 +520,29 @@ def get_all_jobs():
     if 'user_email' not in session:
         print("DEBUG Unauthorized access to /get_all_jobs")
         return jsonify({'status': 'fail', 'message': 'Unauthorized'}), 401
+
+    user_email = session['user_email']  # ✅ NEW
+
     try:
         cur = mysql.connection.cursor()
-        cur.execute("SELECT * FROM jobs")
+
+        # ✅ FILTER BY USER
+        cur.execute("SELECT * FROM jobs WHERE user_email = %s", (user_email,))
         jobs = cur.fetchall()
-        print(f"DEBUG found {len(jobs)} jobs")
+
+        print(f"DEBUG found {len(jobs)} jobs for user {user_email}")
+
         for job in jobs:
-            cur.execute("SELECT degree, major FROM job_qualifications WHERE jobid = %s", (job['jobid'],))
+            cur.execute(
+                "SELECT degree, major FROM job_qualifications WHERE jobid = %s",
+                (job['jobid'],)
+            )
             quals = cur.fetchall()
             job['qualifications'] = quals
+
         cur.close()
         return jsonify(jobs)
+
     except Exception as ex:
         print("ERROR in /get_all_jobs:", ex)
         return jsonify({'status': 'fail', 'message': 'Server error'}), 500
@@ -505,13 +553,23 @@ def get_all_jobs():
 def get_all_candidates():
     if 'user_email' not in session:
         return jsonify({'status': 'fail', 'message': 'Unauthorized'}), 401
+
+    user_email = session['user_email']  # ✅ NEW
+
     cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM candidates")
+
+    # ✅ FILTER BY USER
+    cur.execute("SELECT * FROM candidates WHERE user_email = %s", (user_email,))
     candidates = cur.fetchall()
+
     for cand in candidates:
-        cur.execute("SELECT degree, major FROM candidate_qualifications WHERE candidateid = %s", (cand['candidateid'],))
+        cur.execute(
+            "SELECT degree, major FROM candidate_qualifications WHERE candidateid = %s",
+            (cand['candidateid'],)
+        )
         quals = cur.fetchall()
         cand['qualifications'] = quals
+
     cur.close()
     return jsonify(candidates)
 
@@ -544,35 +602,66 @@ def build_candidate_dict(candidate):
 def check_score():
     if 'user_email' not in session:
         return jsonify({'status': 'fail', 'message': 'Unauthorized'}), 401
+
+    user_email = session['user_email']  # ✅ NEW
     data = request.json
+
     jobid = data.get('jobid', '').strip()
     candidateid = data.get('candidateid', '').strip()
+
     cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM jobs WHERE jobid = %s", (jobid,))
+
+    # ✅ FILTER BOTH
+    cur.execute("""
+        SELECT * FROM jobs 
+        WHERE jobid = %s AND user_email = %s
+    """, (jobid, user_email))
     job = cur.fetchone()
-    cur.execute("SELECT * FROM candidates WHERE candidateid = %s", (candidateid,))
+
+    cur.execute("""
+        SELECT * FROM candidates 
+        WHERE candidateid = %s AND user_email = %s
+    """, (candidateid, user_email))
     candidate = cur.fetchone()
+
     cur.close()
+
     if not job or not candidate:
-        return jsonify({'status': 'fail', 'message': 'Job or Candidate ID not found.'}), 404
+        return jsonify({'status': 'fail', 'message': 'Not found'}), 404
+
     score = calculate_match_score(build_candidate_dict(candidate), build_job_dict(job))
-    tag = categorize_score(score)
-    roundscore = float(round(score,4))
-    return jsonify({'status': 'success', 'score': roundscore * 100, 'tag': tag})
+
+    return jsonify({
+        'status': 'success',
+        'score': score * 100,
+        'tag': categorize_score(score)
+    })
 
 
 @app.route('/find_matching_jobs', methods=['POST'])
 def find_matching_jobs():
     if 'user_email' not in session:
         return jsonify({'status': 'fail', 'message': 'Unauthorized'}), 401
+
+    user_email = session['user_email']  # ✅ NEW
     candidateid = request.json.get('candidateid', '').strip()
+
     cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM candidates WHERE candidateid = %s", (candidateid,))
+
+    # ✅ candidate must belong to user
+    cur.execute("""
+        SELECT * FROM candidates 
+        WHERE candidateid = %s AND user_email = %s
+    """, (candidateid, user_email))
     candidate = cur.fetchone()
+
     if not candidate:
-        return jsonify({'status': 'fail', 'message': 'Candidate ID not found.'}), 404
-    cur.execute("SELECT * FROM jobs")
+        return jsonify({'status': 'fail', 'message': 'Candidate not found'}), 404
+
+    # ✅ only user's jobs
+    cur.execute("SELECT * FROM jobs WHERE user_email = %s", (user_email,))
     jobs = cur.fetchall()
+
     results = []
     for job in jobs:
         score = calculate_match_score(build_candidate_dict(candidate), build_job_dict(job))
@@ -583,6 +672,7 @@ def find_matching_jobs():
                 'score': score * 100,
                 'tag': categorize_score(score)
             })
+
     cur.close()
     return jsonify({'status': 'success', 'matches': results})
 
@@ -591,14 +681,26 @@ def find_matching_jobs():
 def find_matching_candidates():
     if 'user_email' not in session:
         return jsonify({'status': 'fail', 'message': 'Unauthorized'}), 401
+
+    user_email = session['user_email']  # ✅ NEW
     jobid = request.json.get('jobid', '').strip()
+
     cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM jobs WHERE jobid = %s", (jobid,))
+
+    # ✅ job must belong to user
+    cur.execute("""
+        SELECT * FROM jobs 
+        WHERE jobid = %s AND user_email = %s
+    """, (jobid, user_email))
     job = cur.fetchone()
+
     if not job:
-        return jsonify({'status': 'fail', 'message': 'Job ID not found.'}), 404
-    cur.execute("SELECT * FROM candidates")
+        return jsonify({'status': 'fail', 'message': 'Job not found'}), 404
+
+    # ✅ only user's candidates
+    cur.execute("SELECT * FROM candidates WHERE user_email = %s", (user_email,))
     candidates = cur.fetchall()
+
     results = []
     for candidate in candidates:
         score = calculate_match_score(build_candidate_dict(candidate), build_job_dict(job))
@@ -608,6 +710,7 @@ def find_matching_candidates():
                 'score': score * 100,
                 'tag': categorize_score(score)
             })
+
     cur.close()
     return jsonify({'status': 'success', 'matches': results})
 
