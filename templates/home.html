@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Job Matching AI - Dashboard</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0 20px 100px 20px;
+        background: #f7f9fc;
+        color: #333;
+    }
+    h2 {
+        margin-top: 40px;
+        color: #1177cc;
+    }
+    .form-section {
+        background: white;
+        padding: 20px;
+        margin-top: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    label {
+        display: block;
+        margin-top: 12px;
+        font-weight: 600;
+    }
+    input[type="text"], input[type="number"], textarea {
+        width: 95%;
+        padding: 8px;
+        margin-top: 6px;
+        border: 1px solid #bbb;
+        border-radius: 4px;
+        font-size: 14px;
+        resize: vertical;
+    }
+    button {
+        margin-top: 16px;
+        background-color: #1177cc;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+    button:hover {
+        background-color: #095a9d;
+    }
+    .collapsible-button {
+        margin-top: 10px;
+        background-color: red;
+        cursor: pointer;
+        padding: 8px 10px;
+        border-radius: 4px;
+        font-weight: 600;
+        border: none;
+        width: 200px;
+        text-align: left;
+    }
+    .collapsible-button:hover {
+        background-color: #999;
+    }
+    .collapse-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        background-color: #f1f1f1;
+        padding: 0 18px;
+        margin-top: 6px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+    }
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 12px;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        font-size: 14px;
+    }
+    th {
+        background-color: #1177cc;
+        color: white;
+        text-align: left;
+    }
+    #refreshBtn {
+        position: fixed;
+        top: 12px;
+        right: 20px;
+        background: #ff4c4c;
+        color: white;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 50px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 14px;
+        z-index: 9999;
+    }
+    .message {
+        margin-top: 10px;
+        font-weight: 600;
+        color: green;
+    }
+    .error-message {
+        color: red;
+        font-weight: 600;
+    }
+    .scrollable-container {
+        max-height: 400px;
+        overflow-y: auto;
+        margin-top: 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background: white;
+        padding: 12px;
+    }
+    .qualification-pair {
+        margin: 6px 0;
+    }
+</style>
+</head>
+<body>
+
+<button id="refreshBtn" title="Refresh Page">Refresh</button>
+
+<div style="text-align: center;">
+  <h1><strong>Job Matching AI 🕵️</strong></h1>
+  <h4><i>Calculate job-candidate match score | Find matching jobs for candidate | Find matching candidates for job </i></h4>
+</div>
+
+<div class="form-section" id="jobFormSection">
+    <h2>Add Job Description</h2>
+    <label for="jobidInput">Job ID (2 letters followed by number 1-1000)</label>
+    <input type="text" id="jobidInput" name="jobid" placeholder="e.g., ab123" required/>
+
+    <label for="jobRoleInput">Job Role(s) (comma separated)</label>
+    <input type="text" id="jobRoleInput" name="job_roles" placeholder="e.g., software engineer, developer" required/>
+
+    <label for="jobSkillsInput">Required Skills (comma separated)</label>
+    <input type="text" id="jobSkillsInput" name="job_skills" placeholder="e.g., python, java, sql" required/>
+
+    <div id="jobQualificationsContainer">
+        <label>Qualification(s):</label>
+        <div class="qualification-pair">
+            <input type="text" class="degreeInput" name="degree" placeholder="Degree" /> 
+            <input type="text" class="majorInput" name="major" placeholder="Major (optional)" />
+        </div>
+    </div>
+    <button id="addJobQualBtn" style="margin-top: 8px;">Add Another Qualification</button>
+
+    <label for="jobExperienceInput">Minimum Years of Experience</label>
+    <input type="number" id="jobExperienceInput" name="job_experience" min="0" value="0" />
+
+    <button id="addJobBtn">Add Job</button>
+    <button class="collapsible-button" id="viewJobsBtn" type="button">View All Job Details</button>
+    <div class="collapse-content" id="jobsTableContainer"></div>
+</div>
+
+<!-- Candidate Resume Form -->
+<div class="form-section" id="candidateFormSection">
+    <h2>Add Candidate Resume</h2>
+    <label>Candidate ID (auto-generated)</label>
+    <input type="text" id="candidateIdDisplay" disabled placeholder="Will auto-generate on add" />
+
+    <label for="candidateSkillsInput">Candidate Skills (comma separated)</label>
+    <input type="text" id="candidateSkillsInput" placeholder="e.g., python, sql, machine learning" required/>
+
+    <div id="candidateQualificationsContainer">
+        <label>Qualification(s):</label>
+        <div class="qualification-pair">
+            <input type="text" class="candDegreeInput" placeholder="Degree" /> 
+            <input type="text" class="candMajorInput" placeholder="Major (required)" />
+        </div>
+    </div>
+    <button id="addCandidateQualBtn" style="margin-top: 8px;">Add Another Qualification</button>
+
+    <label for="candidateExperienceInput">Years of Experience</label>
+    <input type="number" id="candidateExperienceInput" min="0" value="0" />
+
+    <button id="addCandidateBtn">Add Candidate</button>
+
+    <button class="collapsible-button" id="viewCandidatesBtn">View All Candidate Details</button>
+    <div class="collapse-content" id="candidatesTableContainer"></div>
+</div>
+
+<!-- Match Score Section -->
+<div class="form-section" id="scoreCheckSection">
+    <h2>Check Match Score</h2>
+
+    <label for="scoreCheckJobId">Enter Job ID</label>
+    <input type="text" id="scoreCheckJobId" placeholder="e.g., ab123" />
+
+    <label for="scoreCheckCandidateId">Enter Candidate ID</label>
+    <input type="text" id="scoreCheckCandidateId" placeholder="e.g., xy789" />
+
+    <button id="checkScoreBtn">Check Score</button>
+
+    <div id="scoreCheckResult" style="margin-top: 12px; font-weight: 700;"></div>
+</div>
+
+<!-- Find Matching Jobs for Candidate -->
+<div class="form-section" id="findJobsSection">
+    <h2>Find Matching Jobs for Candidate</h2>
+
+    <label for="findJobsCandidateId">Enter Candidate ID</label>
+    <input type="text" id="findJobsCandidateId" placeholder="e.g., xy789" />
+
+    <button id="findJobsBtn">Find Matching Jobs</button>
+
+    <div id="findJobsResult" class="scrollable-container"></div>
+</div>
+
+<!-- Find Matching Candidates for Job -->
+<div class="form-section" id="findCandidatesSection">
+    <h2>Find Matching Candidates for Job</h2>
+
+    <label for="findCandidatesJobId">Enter Job ID</label>
+    <input type="text" id="findCandidatesJobId" placeholder="e.g., ab123" />
+
+    <button id="findCandidatesBtn">Find Matching Candidates</button>
+
+    <div id="findCandidatesResult" class="scrollable-container"></div>
+</div>
+
+<script>
+    
+    // Add qualification input pair for job
+    document.getElementById('addJobQualBtn').addEventListener('click', () => {
+        const container = document.getElementById('jobQualificationsContainer');
+        const div = document.createElement('div');
+        div.classList.add('qualification-pair');
+        div.innerHTML = `<input type="text" class="degreeInput" placeholder="Degree" />  <input type="text" class="majorInput" placeholder="Major (optional)" />`;
+        container.appendChild(div);
+    });
+
+    // Add qualification input pair for candidate
+    document.getElementById('addCandidateQualBtn').addEventListener('click', () => {
+        const container = document.getElementById('candidateQualificationsContainer');
+        const div = document.createElement('div');
+        div.classList.add('qualification-pair');
+        div.innerHTML = `<input type="text" class="candDegreeInput" placeholder="Degree" />  <input type="text" class="candMajorInput" placeholder="Major (required)" />`;
+        container.appendChild(div);
+    });
+
+    function getQualificationsFrom(containerSelector, degreeClass, majorClass, requireMajor = false) {
+        const container = document.querySelector(containerSelector);
+        const pairs = container.querySelectorAll('.qualification-pair');
+        let quals = [];
+        let valid = true;
+        pairs.forEach(pair => {
+            const deg = pair.querySelector(`.${degreeClass}`).value.trim();
+            const maj = pair.querySelector(`.${majorClass}`).value.trim();
+            if (!deg && (!maj && requireMajor)) {
+                valid = false;
+            } else {
+                quals.push([deg, maj]);
+            }
+        });
+        return valid ? quals : null;
+    }
+
+    
+
+    // Add Job button
+    document.getElementById('addJobBtn').addEventListener('click', async () => {
+        const jobid = document.getElementById('jobidInput').value.trim();
+        const roles = document.getElementById('jobRoleInput').value.split(',').map(v => v.trim()).filter(v => v);
+        const skills = document.getElementById('jobSkillsInput').value.split(',').map(v => v.trim()).filter(v => v);
+        const experienceStr = document.getElementById('jobExperienceInput').value.trim();
+        const experience = experienceStr === '' ? 0 : Number(experienceStr);
+
+        if (!jobid || roles.length === 0 || skills.length === 0 || experienceStr === '') {
+            alert('Please fill all required job fields.');
+            return;
+        }
+        const qualifications = getQualificationsFrom('#jobQualificationsContainer', 'degreeInput', 'majorInput', false);
+        
+        if (!qualifications) {
+            alert('Please fill all degree fields for job qualifications.');
+            return;
+        }
+        
+        // Validate Job ID format (2 letters + 1-3 digits between 1 and 1000)
+        if (!/^[a-zA-Z]{2}\d{1,3}$/.test(jobid)) {
+            alert('Invalid Job ID format. Must be 2 letters followed by number 1 to 1000.');
+            return;
+        }
+        const numPart = parseInt(jobid.match(/\d+/)[0], 10);
+        if (numPart < 1 || numPart > 1000) {
+            alert('Job number part must be between 1 and 1000.');
+            return;
+        }
+
+        const response = await postJSON('/add_job', {jobid, role: roles, skills, qualifications, experience});
+        if (response.status === 'success') {
+            alert('Job added successfully.');
+            clearJobForm();
+        } else {
+            alert('Error: ' + response.message);
+        }
+    });
+
+    // Add Candidate button
+    document.getElementById('addCandidateBtn').addEventListener('click', async () => {
+        const skills = document.getElementById('candidateSkillsInput').value.split(',').map(v => v.trim()).filter(v => v);
+        const experienceStr = document.getElementById('candidateExperienceInput').value.trim();
+        const experience = experienceStr === '' ? 0 : Number(experienceStr);
+
+        if (skills.length === 0 || experienceStr === '') {
+            alert('Please fill all required candidate fields.');
+            return;
+        }
+
+        const qualifications = getQualificationsFrom('#candidateQualificationsContainer', 'candDegreeInput', 'candMajorInput', true);
+        if (!qualifications) {
+            alert('Please fill all degree and major fields for candidate qualifications.');
+            return;
+        }
+        const response = await postJSON('/add_candidate', {skills, qualifications, experience});
+        if (response.status === 'success') {
+            alert('Candidate added successfully. Generated ID: ' + response.candidateid);
+            document.getElementById('candidateIdDisplay').value = response.candidateid;
+            clearCandidateForm();
+        } else {
+            alert('Error: ' + response.message);
+        }
+    });
+
+    async function postJSON(url, data) {
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        let result;
+        try { result = await resp.json(); }
+        catch { result = {status: 'fail', message: 'Invalid JSON from server.'}; }
+        return result;
+    }
+
+
+    // VIEW ALL JOBS
+    document.getElementById('viewJobsBtn').addEventListener('click', async (event) => {
+        event.preventDefault();
+        const container = document.getElementById('jobsTableContainer');
+
+        // toggle open/close
+        if (container.style.maxHeight) {
+            container.style.maxHeight = null;
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = '<p>Loading jobs...</p>';
+
+        try {
+            const response = await fetch('/get_all_jobs', { credentials: 'include' });
+            if (!response.ok) throw new Error('Failed to fetch jobs');
+            const jobs = await response.json();
+
+            if (!Array.isArray(jobs) || jobs.length === 0) {
+                container.innerHTML = '<p>No jobs found.</p>';
+            } else {
+                let html = `<table><thead><tr><th>Job ID</th><th>Roles</th><th>Skills</th><th>Qualifications</th><th>Experience</th></tr></thead><tbody>`;
+                jobs.forEach(job => {
+                    const quals = job.qualifications?.map(q => `${q.degree || ''} | ${q.major || ''}`).join('<br>') || 'None';
+                    html += `<tr><td>${job.jobid}</td><td>${job.roles}</td><td>${job.skills}</td><td>${quals}</td><td>${job.experience}</td></tr>`;
+                });
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            }
+
+            container.style.maxHeight = container.scrollHeight + 'px';
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+        }
+    });
+
+    // VIEW ALL CANDIDATES
+    document.getElementById('viewCandidatesBtn').addEventListener('click', async (event) => {
+        event.preventDefault();
+        const container = document.getElementById('candidatesTableContainer');
+
+        // toggle open/close
+        if (container.style.maxHeight) {
+            container.style.maxHeight = null;
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = '<p>Loading candidates...</p>';
+
+        try {
+            const response = await fetch('/get_all_candidates', { credentials: 'include' });
+            if (!response.ok) throw new Error('Failed to fetch candidates');
+            const candidates = await response.json();
+
+            if (!Array.isArray(candidates) || candidates.length === 0) {
+                container.innerHTML = '<p>No candidates found.</p>';
+            } else {
+                let html = `<table><thead><tr><th>Candidate ID</th><th>Skills</th><th>Qualifications</th><th>Experience</th></tr></thead><tbody>`;
+                candidates.forEach(cand => {
+                    const quals = cand.qualifications?.map(q => `${q.degree || ''} | ${q.major || ''}`).join('<br>') || 'None';
+                    html += `<tr><td>${cand.candidateid}</td><td>${cand.skills}</td><td>${quals}</td><td>${cand.experience}</td></tr>`;
+                });
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            }
+
+            container.style.maxHeight = container.scrollHeight + 'px';
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+        }
+    });
+
+
+
+    // Check Score button
+    document.getElementById('checkScoreBtn').addEventListener('click', async () => {
+        const jobid = document.getElementById('scoreCheckJobId').value.trim();
+        const candidateid = document.getElementById('scoreCheckCandidateId').value.trim();
+        if (!jobid || !candidateid) {
+            alert('Enter both Job ID and Candidate ID');
+            return;
+        }
+        const response = await postJSON('/check_score', {jobid, candidateid});
+        const output = document.getElementById('scoreCheckResult');
+        if (response.status === 'success') {
+            output.style.color = 'green';
+            output.textContent = `Match Score: ${response.score}%, Remarks: ${response.tag}`;
+        } else {
+            output.style.color = 'red';
+            output.textContent = 'Error: ' + response.message;
+        }
+    });
+
+    // Find Matching Jobs button
+    document.getElementById('findJobsBtn').addEventListener('click', async () => {
+        const candidateid = document.getElementById('findJobsCandidateId').value.trim();
+        if (!candidateid) {
+            alert('Enter Candidate ID');
+            return;
+        }
+        const container = document.getElementById('findJobsResult');
+        container.innerHTML = '<p>Loading...</p>';
+        const response = await postJSON('/find_matching_jobs', {candidateid});
+        if (response.status === 'success') {
+            if (response.matches.length === 0) {
+                container.innerHTML = '<p>No matching jobs found (>=70% score).</p>';
+                return;
+            }
+            let html = '<table><thead><tr><th>Job ID</th><th>Roles</th><th>Score (%)</th><th>Remarks</th></tr></thead><tbody>';
+            response.matches.forEach(job => {
+                html += `<tr><td>${job.jobid}</td><td>${job.roles}</td><td>${job.score}</td><td>${job.tag}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = `<p style="color:red;">Error: ${response.message}</p>`;
+        }
+    });
+
+    // Find Matching Candidates button
+    document.getElementById('findCandidatesBtn').addEventListener('click', async () => {
+        const jobid = document.getElementById('findCandidatesJobId').value.trim();
+        if (!jobid) {
+            alert('Enter Job ID');
+            return;
+        }
+        const container = document.getElementById('findCandidatesResult');
+        container.innerHTML = '<p>Loading...</p>';
+        const response = await postJSON('/find_matching_candidates', {jobid});
+        if (response.status === 'success') {
+            if (response.matches.length === 0) {
+                container.innerHTML = '<p>No matching candidates found (>=70% score).</p>';
+                return;
+            }
+            let html = '<table><thead><tr><th>Candidate ID</th><th>Score (%)</th><th>Remarks</th></tr></thead><tbody>';
+            response.matches.forEach(cand => {
+                html += `<tr><td>${cand.candidateid}</td><td>${cand.score}</td><td>${cand.tag}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = `<p style="color:red;">Error: ${response.message}</p>`;
+        }
+    });
+
+    // Refresh button resets all forms and collapsible content
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+        // Clear job form inputs
+        document.getElementById('jobidInput').value = '';
+        document.getElementById('jobRoleInput').value = '';
+        document.getElementById('jobSkillsInput').value = '';
+        document.getElementById('jobExperienceInput').value = '0';
+        // Reset job qualifications container to single pair
+        const jobQuals = document.getElementById('jobQualificationsContainer');
+        jobQuals.innerHTML = `<label>Qualification(s):</label><div class="qualification-pair"><input type="text" class="degreeInput" placeholder="Degree" /> <input type="text" class="majorInput" placeholder="Major (optional)" /></div>`;
+
+        // Clear candidate form inputs
+        document.getElementById('candidateIdDisplay').value = '';
+        document.getElementById('candidateSkillsInput').value = '';
+        document.getElementById('candidateExperienceInput').value = '0';
+        const candQuals = document.getElementById('candidateQualificationsContainer');
+        candQuals.innerHTML = `<label>Qualification(s):</label><div class="qualification-pair"><input type="text" class="candDegreeInput" placeholder="Degree" /> <input type="text" class="candMajorInput" placeholder="Major (required)" /></div>`;
+
+        // Clear Score Check inputs and result
+        document.getElementById('scoreCheckJobId').value = '';
+        document.getElementById('scoreCheckCandidateId').value = '';
+        document.getElementById('scoreCheckResult').textContent = '';
+
+        // Clear find matching jobs inputs/results
+        document.getElementById('findJobsCandidateId').value = '';
+        document.getElementById('findJobsResult').innerHTML = '';
+
+        // Clear find matching candidates inputs/results
+        document.getElementById('findCandidatesJobId').value = '';
+        document.getElementById('findCandidatesResult').innerHTML = '';
+
+        // Close all collapsible content
+        document.querySelectorAll('.collapse-content').forEach(div => {
+            div.style.maxHeight = null;
+            div.innerHTML = '';
+        });
+    });
+
+    // Clear job form function (after successful add)
+    function clearJobForm() {
+        document.getElementById('jobidInput').value = '';
+        document.getElementById('jobRoleInput').value = '';
+        document.getElementById('jobSkillsInput').value = '';
+        document.getElementById('jobExperienceInput').value = '0';
+        const jobQuals = document.getElementById('jobQualificationsContainer');
+        jobQuals.innerHTML = `<label>Qualification(s):</label><div class="qualification-pair"><input type="text" class="degreeInput" placeholder="Degree" /> <input type="text" class="majorInput" placeholder="Major (optional)" /></div>`;
+    }
+
+    // Clear candidate form function (after successful add)
+    function clearCandidateForm() {
+        document.getElementById('candidateSkillsInput').value = '';
+        document.getElementById('candidateExperienceInput').value = '0';
+        const candQuals = document.getElementById('candidateQualificationsContainer');
+        candQuals.innerHTML = `<label>Qualification(s):</label><div class="qualification-pair"><input type="text" class="candDegreeInput" placeholder="Degree" /> <input type="text" class="candMajorInput" placeholder="Major (required)" /></div>`;
+    }
+</script>
+
+</body>
+</html>

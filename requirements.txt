@@ -1,0 +1,7 @@
+flask
+flask-mysqldb
+sentence-transformers
+scikit-learn
+pyspellchecker
+numpy
+mysqlclient
