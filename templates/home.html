@@ -127,6 +127,19 @@
 </head>
 <body>
 
+<button onclick="logout()" style="
+    position:absolute;
+    top:20px;
+    left:20px;
+    padding:8px 16px;
+    background-color:#dc3545;
+    color:white;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+">
+    Logout
+</button>
 <button id="refreshBtn" title="Refresh Page">Refresh</button>
 
 <div style="text-align: center;">
@@ -229,6 +242,10 @@
 </div>
 
 <script>
+
+    function logout() {
+        window.location.href = "/logout";
+    }
     
     // Add qualification input pair for job
     document.getElementById('addJobQualBtn').addEventListener('click', () => {
