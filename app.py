@@ -9,6 +9,8 @@ import random
 import string 
 from flask.json.provider import DefaultJSONProvider
 
+from purePython.ml_score_model import predict_score
+
 # ========================================================
 # Custom JSON Provider: Fixes NumPy float serialization globally
 # ========================================================
@@ -291,10 +293,7 @@ def qualifications_match(candidate_quals, job_quals):
 
 
 def calculate_match_score(resume_dict, job_dict):
-    WEIGHT_SKILLS = 0.5
-    WEIGHT_QUALIFICATIONS = 0.2
-    WEIGHT_EXPERIENCE = 0.3
-
+    # ===== Extract features (UNCHANGED logic) =====
     candidate_skills = resume_dict.get('skills', [])
     job_skills = job_dict.get('skills', [])
     skill_score = semantic_similarity(candidate_skills, job_skills)
@@ -303,21 +302,26 @@ def calculate_match_score(resume_dict, job_dict):
         resume_dict.get('qualifications', []),
         job_dict.get('qualifications', [])
     )
+
     required_experience = job_dict.get('experience', 0)
     candidate_experience = resume_dict.get('experience', 0)
 
     if required_experience == 0:
         experience_score = 1.0
     elif candidate_experience < required_experience:
-        experience_score = 0.0
+        experience_score = candidate_experience / (required_experience + 1)
     else:
         experience_score = min(candidate_experience / required_experience, 1.0)
 
-    total_score = (skill_score * WEIGHT_SKILLS) + \
-                  (qualification_score * WEIGHT_QUALIFICATIONS) + \
-                  (experience_score * WEIGHT_EXPERIENCE)
+    # ===== ML Prediction (REPLACES WEIGHTS) =====
 
-    return float(round(total_score, 4))
+    predicted_score = predict_score(
+        skill_score,
+        experience_score,
+        qualification_score
+    )
+
+    return float(round(predicted_score, 4))
 
 
 def categorize_score(score):
