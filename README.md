@@ -89,7 +89,7 @@ _(Now derived from ML-based scoring instead of fixed logic)_
 project-root/
 ├── app.py
 ├── purePython/
-│ └── ml_model.py # ML model (Random Forest)
+│ └── ml_score_model.py # ML model (Random Forest)
 ├── templates/
 │ ├── home.html
 │ └── login.html
