@@ -86,6 +86,7 @@ _(Now derived from ML-based scoring instead of fixed logic)_
 
 ## 📁 Project Structure
 
+```
 project-root/
 ├── app.py
 ├── purePython/
@@ -95,6 +96,7 @@ project-root/
 │ └── login.html
 ├── static/
 │ └── login_design.jpg
+```
 
 ---
 
